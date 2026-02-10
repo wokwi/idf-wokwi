@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "idf-wokwi"
+version = "1.0.0"
+description = "Wokwi simulation extension for ESP-IDF (idf.py wokwi)"
+readme = "README.md"
+authors = [{ name = "Uri Shaked", email = "uri@wokwi.com" }]
+license = "Apache-2.0"
+keywords = ["wokwi", "esp-idf", "simulation", "esp32", "idf.py"]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Embedded Systems",
+    "Topic :: System :: Emulators",
+    "Typing :: Typed",
+]
+dependencies = ["wokwi-client>=0.1.0"]
+
+[project.urls]
+Source = "https://github.com/wokwi/idf-wokwi"
+Issues = "https://github.com/wokwi/idf-wokwi/issues"
+
+[project.entry-points.idf_extension]
+wokwi = "idf_wokwi.wokwi_ext:action_extensions"
+
+[tool.hatch.envs.default]
+dependencies = ["ruff>=0.12.0", "mypy>=1.16.1"]
+
+[tool.hatch.envs.dev]
+template = "default"
+extra-dependencies = ["pytest"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers"

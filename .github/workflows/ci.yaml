@@ -1,0 +1,93 @@
+name: CI
+
+on:
+    push:
+    pull_request:
+        branches:
+            - main
+    workflow_dispatch:
+
+env:
+    ESP_IDF_BRANCH: release/v6.0
+    ESP_IDF_TARGET: esp32
+
+jobs:
+    lint:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: "3.12"
+            - run: pip install hatch
+            - run: hatch run ruff format --check .
+            - run: hatch run ruff check .
+            - run: hatch run mypy .
+
+    test:
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-24.04, windows-latest]
+                python-version: ["3.9", "3.12", "3.13"]
+
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: ${{ matrix.python-version }}
+            - run: pip install hatch
+            - run: hatch run dev:pytest tests/test_integration.py::test_action_extensions_structure
+
+    integration:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: "3.12"
+
+            - uses: actions/cache@v4
+              id: cache-esp-idf
+              with:
+                  path: |
+                      ~/esp-idf
+                      ~/.espressif
+                  key: esp-idf-${{ env.ESP_IDF_BRANCH }}-${{ env.ESP_IDF_TARGET }}
+
+            - name: Install ESP-IDF
+              if: steps.cache-esp-idf.outputs.cache-hit != 'true'
+              run: |
+                  git clone --depth 1 --recursive --shallow-submodules -b $ESP_IDF_BRANCH https://github.com/espressif/esp-idf.git ~/esp-idf
+                  ~/esp-idf/install.sh $ESP_IDF_TARGET
+
+            - uses: actions/cache@v4
+              id: cache-build
+              with:
+                  path: test-project/build
+                  key: test-build-${{ env.ESP_IDF_TARGET }}-${{ hashFiles('test-project/**') }}-${{ env.ESP_IDF_BRANCH }}
+
+            - name: Build test project
+              if: steps.cache-build.outputs.cache-hit != 'true'
+              run: |
+                  . ~/esp-idf/export.sh
+                  cd test-project
+                  idf.py set-target $ESP_IDF_TARGET
+                  idf.py build
+
+            - name: Install idf-wokwi
+              run: |
+                  . ~/esp-idf/export.sh
+                  pip install .
+
+            - uses: wokwi/wokwi-ci-server-action@v1
+
+            - name: Test idf.py wokwi
+              run: |
+                  . ~/esp-idf/export.sh
+                  cd test-project
+                  idf.py wokwi --timeout 10000 --expect-text "Hello world!" 2>&1 | tee output.log
+                  grep -q "Expected text found: Hello world!" output.log
+              env:
+                  WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
