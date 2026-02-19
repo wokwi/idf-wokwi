@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "idf-wokwi"
-version = "1.0.0"
+version = "1.1.0"
 description = "Wokwi simulation extension for ESP-IDF (idf.py wokwi)"
 readme = "README.md"
 authors = [{ name = "Uri Shaked", email = "uri@wokwi.com" }]
@@ -25,7 +25,7 @@ classifiers = [
     "Topic :: System :: Emulators",
     "Typing :: Typed",
 ]
-dependencies = ["wokwi-client>=0.1.0"]
+dependencies = ["wokwi-client>=0.4.0"]
 
 [project.urls]
 Source = "https://github.com/wokwi/idf-wokwi"

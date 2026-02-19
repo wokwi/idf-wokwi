@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from wokwi_client import GET_TOKEN_URL, WokwiClientSync
+from wokwi_client import GET_TOKEN_URL, IdfFirmwareUploadResult, WokwiClientSync
 
 from ._log import red_print, yellow_print
 from .diagram import find_diagram, generate_diagram
@@ -43,8 +43,8 @@ def _upload_artifacts(
     diagram_path: str,
     flasher_args_path: str,
     elf_path: str,
-) -> tuple[str, str]:
-    """Upload diagram, firmware, and ELF to the simulator. Returns (firmware_name, elf_name)."""
+) -> tuple[IdfFirmwareUploadResult, str]:
+    """Upload diagram, firmware, and ELF to the simulator. Returns (idf_result, elf_name)."""
     if diagram_path:
         client.upload_file("diagram.json", Path(diagram_path))
         yellow_print(f"Uploaded diagram: {diagram_path}")
@@ -54,7 +54,7 @@ def _upload_artifacts(
         client.upload("diagram.json", diagram_content.encode("utf-8"))
         yellow_print(f"Generated diagram for target: {target}")
 
-    firmware_name: str = client.upload_file("flasher_args.json", Path(flasher_args_path))
+    idf = client.upload_idf_firmware(flasher_args_path)
     yellow_print("Uploaded firmware")
 
     elf_name = ""
@@ -62,7 +62,7 @@ def _upload_artifacts(
         elf_name = client.upload_file(os.path.basename(elf_path), Path(elf_path))
         yellow_print(f"Uploaded ELF: {os.path.basename(elf_path)}")
 
-    return firmware_name, elf_name
+    return idf, elf_name
 
 
 def wokwi_callback(
@@ -105,14 +105,16 @@ def wokwi_callback(
         hello = client.connect()
         yellow_print(f"Connected to Wokwi Simulator (server {hello.get('version', '?')})")
 
-        firmware_name, elf_name = _upload_artifacts(
+        idf, elf_name = _upload_artifacts(
             client, project_desc, build_dir, diagram_path, flasher_args_path, elf_path
         )
 
         engine = ExpectEngine(expect_text, fail_text, expect_regex, fail_regex)
         client.serial_monitor(engine.feed)
 
-        client.start_simulation(firmware=firmware_name, elf=elf_name or None)
+        client.start_simulation(
+            firmware=idf.firmware, flash_size=idf.flash_size, elf=elf_name or None
+        )
         yellow_print("Simulation started")
 
         if engine.active or timeout:
