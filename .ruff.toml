@@ -16,6 +16,7 @@ lint.ignore = [
     "E501",    # handled by formatter
     "PLC0415", # lazy imports for platform-specific modules are fine
     "PLR0913", # callback signature dictated by idf.py extension API
+    "PLR0917", # same: positional-argument variant, stable since ruff 0.16
 ]
 
 # Per-folder overrides --------------------------------------------------------
