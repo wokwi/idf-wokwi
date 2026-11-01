@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (C) 2026, CodeMagic LTD
+# Copyright (C) 2026, Wokwi B.V.
 
 """Diagram generation and discovery for Wokwi simulations."""
 
@@ -7,32 +7,47 @@ from __future__ import annotations
 
 import json
 import os
+from typing import NamedTuple
 
 from ._log import red_print
 
-TARGET_WOKWI_PARTS: dict[str, str] = {
-    "esp32": "board-esp32-devkit-c-v4",
-    "esp32s2": "board-esp32-s2-devkitm-1",
-    "esp32s3": "board-esp32-s3-devkitc-1",
-    "esp32c3": "board-esp32-c3-devkitm-1",
-    "esp32c5": "board-esp32-c5-devkitc-1",
-    "esp32c6": "board-esp32-c6-devkitc-1",
-    "esp32h2": "board-esp32-h2-devkitm-1",
-    "esp32p4": "board-esp32-p4-function-ev",
+
+class Board(NamedTuple):
+    part: str
+    tx: str = "TX"
+    rx: str = "RX"
+
+
+# Mirrors the board table in wokwi-cli (packages/cli/src/project/boards.ts).
+TARGET_BOARDS: dict[str, Board] = {
+    "esp32": Board("board-esp32-devkit-c-v4"),
+    "esp32s2": Board("board-esp32-s2-devkitm-1"),
+    "esp32s3": Board("board-esp32-s3-devkitc-1"),
+    "esp32c3": Board("board-esp32-c3-devkitm-1"),
+    "esp32c5": Board("board-esp32-c5-devkitc-1"),
+    "esp32c6": Board("board-esp32-c6-devkitc-1"),
+    "esp32c61": Board("board-esp32-c61-devkitc-1"),
+    "esp32h2": Board("board-esp32-h2-devkitm-1"),
+    "esp32p4": Board("board-esp32-p4-function-ev", tx="37", rx="38"),
+    "esp32s31": Board("board-esp32-s31-function-coreboard-1", tx="TX0", rx="RX0"),
 }
 
 
 def generate_diagram(target: str) -> str:
     """Return a minimal diagram.json string for the given target."""
-    part_type = TARGET_WOKWI_PARTS.get(target, f"board-{target}-devkit")
+    if target not in TARGET_BOARDS:
+        red_print(f"No Wokwi board for target {target}; add a diagram.json to the project.")
+        red_print(f"Targets with a generated diagram: {', '.join(TARGET_BOARDS)}")
+        raise SystemExit(1)
+    board = TARGET_BOARDS[target]
     diagram = {
         "version": 1,
         "author": "idf-wokwi",
         "editor": "wokwi",
-        "parts": [{"type": part_type, "id": "esp"}],
+        "parts": [{"type": board.part, "id": "esp"}],
         "connections": [
-            ["esp:TX", "$serialMonitor:RX", "", []],
-            ["esp:RX", "$serialMonitor:TX", "", []],
+            [f"esp:{board.tx}", "$serialMonitor:RX", "", []],
+            [f"esp:{board.rx}", "$serialMonitor:TX", "", []],
         ],
         "serialMonitor": {"display": "terminal"},
     }

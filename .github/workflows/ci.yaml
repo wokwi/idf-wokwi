@@ -38,7 +38,7 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
             - run: pip install hatch
-            - run: hatch run dev:pytest tests/test_integration.py::test_action_extensions_structure
+            - run: hatch run dev:pytest tests/test_diagram.py tests/test_integration.py::test_action_extensions_structure
 
     integration:
         runs-on: ubuntu-24.04
